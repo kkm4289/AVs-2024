@@ -10,12 +10,13 @@ import pickle
 np.set_printoptions(suppress=True)
 car_cam_path = 'DeepAccident_type1_subtype2_normal/ego_vehicle/Camera_Front/Town04_type001_subtype0002_scenario00017/Town04_type001_subtype0002_scenario00017_002.jpg'
 infra_cam_path = 'DeepAccident_type1_subtype2_normal/infrastructure/Camera_Back/Town04_type001_subtype0002_scenario00017/Town04_type001_subtype0002_scenario00017_002.jpg'
-
 car_calib_path = 'DeepAccident_type1_subtype2_normal/ego_vehicle/calib/Town04_type001_subtype0002_scenario00017/Town04_type001_subtype0002_scenario00017_002.pkl'
 infra_calib_path = 'DeepAccident_type1_subtype2_normal/infrastructure/calib/Town04_type001_subtype0002_scenario00017/Town04_type001_subtype0002_scenario00017_002.pkl'
+infra_labels_path = 'DeepAccident_type1_subtype2_normal/infrastructure/label/Town04_type001_subtype0002_scenario00017/Town04_type001_subtype0002_scenario00017_002.txt'
 
 car_cam = cv2.imread(car_cam_path)
 infra_cam = cv2.imread(infra_cam_path)
+infra_labels = np.loadtxt(infra_labels_path, delimiter=' ', dtype=str, skiprows=1)
 
 # resize images keeping aspect ratio
 height, width, _ = car_cam.shape
@@ -50,9 +51,16 @@ transformation = lidar_to_car_front @ car_ego_to_lidar @ infra_lidar_to_ego @ in
 print("Transformation matrix: \n", transformation)
 
 #TODO get bounding boxes of infra_back_cam
+#TODO what frame are the bounding boxes in?
+#TODO what does the true/false mean?
 
-#TODO apply perespective shift to bounding boxes of infra_back_cam to car_front_cam
+for bbox in infra_labels:
+    print("Label", bbox[0])
+    print("Coordinates", np.array(bbox[1:9]))
+
+    # apply transformation to bounding box from infra_back_cam to car_front_cam
 
 #TODO project bounding boxes of infra_back_cam to car_front_cam
 
 #TODO draw bounding boxes on car_front_cam
+
