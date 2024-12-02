@@ -7,6 +7,8 @@ Using a calibration from image1 to image2, apply perspective shift to image1 to 
 import cv2
 import numpy as np
 import pickle
+# import ultralytics
+
 
 np.set_printoptions(suppress=True)
 car_cam_path = 'DeepAccident_type1_subtype2_normal/ego_vehicle/Camera_Front/Town04_type001_subtype0002_scenario00017/Town04_type001_subtype0002_scenario00017_002.jpg'
@@ -170,22 +172,52 @@ if __name__ == '__main__':
     print("Transformation matrix: \n", transformation)
 
     P_infraback = K_infra_back @ infra_lidar_to_cam_back[:3, :]
-    print("P_infraback: \n", P_infraback)
+    # print("P_infraback: \n", P_infraback)
 
-    detections_2d = []
+    P_car = K_car_front @ lidar_to_car_front[:3, :]
+    # print("P_car: \n", P_car)
+
+    detections_2d = [] # for infra_back_cam
+    car_detection_2d = [] # for car_front_cam
+
     for bbox in infra_labels:
         print("Label", bbox[0])
-        corners = get_3d_bbox_corners(bbox)
+        corners_3d = get_3d_bbox_corners(bbox)
         # project onto infra_back_cam and show image
-        corners = np.array(corners)
-        print("8 Corners: \n", (corners))
-        corners_2d = project_points(corners, P_infraback)
-        print("2D Corners: \n", corners_2d)
+        corners_3d = np.array(corners_3d)
+        # print("8 Corners: \n", (corners_3d))
+        corners_2d = project_points(corners_3d, P_infraback)
+        # print("2D Corners: \n", corners_2d)
         detections_2d.append([bbox[0], corners_2d])
 
-        #TODO apply transformation to bounding box from infra_back_cam to car_front_cam
-        # project onto car_front_cam
+        # #TODO apply transformation to 3d bounding box points from infra_back_cam to car_front_cam
+        # ex = np.array([[0, 0, 0], [0,0,0]])
+        # transformed_ex = np.array(
+        #     [transformation @ np.hstack((point, [1])) for point in ex])
+        # print("Transformed ex: \n", transformed_ex)
+        # exit()
 
+        # make homogeneous
+        # then apply transformation to each point separately
+        car_corners_3d = np.array(
+            [transformation @ np.hstack((point, [1])) for point in corners_3d])
+        # print("Transformed points: \n", car_corners_3d)
+
+        # 3D to 2D: project onto car_front_cam
+        assert np.all(car_corners_3d[:, 3] == 1)
+        car_corners_3d = car_corners_3d[:, :3] # remove last column
+        # print("3D Corners: \n", car_corners_3d)
+        car_corners_2d = project_points(car_corners_3d, P_car)
+        car_detection_2d.append([bbox[0], car_corners_2d])
+                
+
+
+    # BBoxes on original images
     image = draw_bounding_box(infra_cam, detections_2d)
     cv2.imwrite('infra_back_cam_bbox.jpg', image)
     print("Image saved as infra_back_cam_bbox.jpg")
+
+    # Transformed BBoxes on car_front_cam
+    image = draw_bounding_box(car_cam, car_detection_2d)
+    cv2.imwrite('car_front_cam_bbox.jpg', image)
+    print("Image saved as car_front_cam_bbox.jpg")
