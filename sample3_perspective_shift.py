@@ -10,11 +10,11 @@ import pickle
 import torch
 
 np.set_printoptions(suppress=True)
-car_cam_path = 'DeepAccident_type1_subtype2_normal/ego_vehicle/Camera_Front/Town04_type001_subtype0002_scenario00017/Town04_type001_subtype0002_scenario00017_002.jpg'
-infra_cam_path = 'DeepAccident_type1_subtype2_normal/infrastructure/Camera_Back/Town04_type001_subtype0002_scenario00017/Town04_type001_subtype0002_scenario00017_002.jpg'
-car_calib_path = 'DeepAccident_type1_subtype2_normal/ego_vehicle/calib/Town04_type001_subtype0002_scenario00017/Town04_type001_subtype0002_scenario00017_002.pkl'
-infra_calib_path = 'DeepAccident_type1_subtype2_normal/infrastructure/calib/Town04_type001_subtype0002_scenario00017/Town04_type001_subtype0002_scenario00017_002.pkl'
-infra_labels_path = 'DeepAccident_type1_subtype2_normal/infrastructure/label/Town04_type001_subtype0002_scenario00017/Town04_type001_subtype0002_scenario00017_002.txt'
+car_cam_path = 'DeepAccident_type1_subtype2_normal/other_vehicle/Camera_FrontLeft/Town04_type001_subtype0002_scenario00017/Town04_type001_subtype0002_scenario00017_005.jpg'
+infra_cam_path = 'DeepAccident_type1_subtype2_normal/infrastructure/Camera_Front/Town04_type001_subtype0002_scenario00017/Town04_type001_subtype0002_scenario00017_005.jpg'
+car_calib_path = 'DeepAccident_type1_subtype2_normal/other_vehicle/calib/Town04_type001_subtype0002_scenario00017/Town04_type001_subtype0002_scenario00017_005.pkl'
+infra_calib_path = 'DeepAccident_type1_subtype2_normal/infrastructure/calib/Town04_type001_subtype0002_scenario00017/Town04_type001_subtype0002_scenario00017_005.pkl'
+infra_labels_path = 'DeepAccident_type1_subtype2_normal/infrastructure/label/Town04_type001_subtype0002_scenario00017/Town04_type001_subtype0002_scenario00017_005.txt'
 
 
 def draw_bounding_box(image, list_corners_2d):
@@ -144,7 +144,7 @@ def yolo_check (bbox, image, yolo_boxes):
 
     for yolo_box in yolo_boxes:
         # if bbox is near any yolo box, return True
-        if abs(yolo_box[0] - bbox[0]) < 10 and abs(yolo_box[1] - bbox[1]) < 10:
+        if abs(yolo_box[0] - bbox[0]) < 8 or abs(yolo_box[1] - bbox[1]) < 8:
             return True
     return False
 
@@ -170,40 +170,39 @@ if __name__ == '__main__':
     results = model(infra_cam_path)
     yolo_boxes = results.xyxy[0].numpy()  # xyxy format
 
+
+
 #     # infra_back_cam to lidar to ego
-    infra_lidar_to_cam_back = infra_calib['lidar_to_Camera_Back']
-    infra_cam_to_lidar = np.linalg.inv(infra_lidar_to_cam_back)  # inverse of the transformation
+    infra_lidar_to_cam = infra_calib['lidar_to_Camera_Front']
+    infra_cam_to_lidar = np.linalg.inv(infra_lidar_to_cam)  # inverse of the transformation
     infra_lidar_to_ego = infra_calib['lidar_to_ego']
-    K_infra_back = infra_calib['intrinsic_Camera_Back']
+    K_infra = infra_calib['intrinsic_Camera_Front']
+    infra_ego_to_world = infra_calib['ego_to_world']
 
     #ego to lidar to car_front_cam
+    car_ego_to_world = car_calib['ego_to_world']
     car_lidar_to_ego = car_calib['lidar_to_ego']
+    car_ego_to_cam = car_calib['lidar_to_Camera_FrontLeft'] # lidar not ego?
     car_ego_to_lidar = np.linalg.inv(car_lidar_to_ego)
-    lidar_to_car_front = car_calib['lidar_to_Camera_Front']
-    K_car_front = car_calib['intrinsic_Camera_Front']
-# # ---
-    K_infra_back = infra_calib['intrinsic_Camera_Back']
-    T_infra_back_to_ego = np.linalg.inv(infra_calib['lidar_to_Camera_Back'])
-    T_ego_to_world_infra = infra_calib['ego_to_world']
+    lidar_to_car = car_calib['lidar_to_Camera_FrontLeft']
+    K_car = car_calib['intrinsic_Camera_FrontLeft']
+    car_world_to_ego = np.linalg.inv(car_ego_to_world)
 
-    T_ego_to_world_car = car_calib['ego_to_world']
-    T_ego_to_car_front = car_calib['lidar_to_Camera_Front']
-    K_car_front = car_calib['intrinsic_Camera_Front']
-    # Combine transformations
-    T_infra_to_world = T_ego_to_world_infra @ T_infra_back_to_ego
-    T_world_to_car = np.linalg.inv(T_ego_to_world_car)
-    T_infra_to_car = T_world_to_car @ T_infra_to_world @ T_ego_to_car_front
-
-
+    T_infra_to_car = np.linalg.inv(
+        car_ego_to_world) @  infra_ego_to_world @ infra_cam_to_lidar @ car_ego_to_cam
+    transformation = T_infra_to_car
     # get  transformation from infra_back_cam to car_front_cam
-    transformation = lidar_to_car_front @ car_ego_to_lidar @ infra_lidar_to_ego
+    transformation = lidar_to_car @ car_ego_to_lidar @ infra_lidar_to_ego
+    # transformation = infra_lidar_to_ego @ infra_ego_to_world @ car_world_to_ego @ car_ego_to_cam
+    
+    # transformation = np.linalg.inv(transformation)
     # print("Transformation matrix: \n", transformation)
 
-    P_infraback = K_infra_back @ infra_lidar_to_cam_back[:3, :]
+    P_infraback = K_infra @ infra_lidar_to_cam[:3, :]
     # print("P_infraback: \n", P_infraback)
 
 
-    P_car = K_car_front[:3, :] @ np.identity(4)[:3, :]
+    P_car = K_car[:3, :] @ np.identity(4)[:3, :]
     # print("P_car: \n", P_car)
 
     detections_2d = [] # for infra_back_cam
@@ -215,7 +214,7 @@ if __name__ == '__main__':
         # project onto infra_back_cam and show image
         corners_3d = np.array(corners_3d)        
 
-        print("3D Corners: \n", (corners_3d))
+        # print("3D Corners: \n", (corners_3d))
         corners_2d = project_points(corners_3d, P_infraback)
         if not yolo_check(corners_2d, infra_cam, yolo_boxes):
             print("BBox not in YOLO. Might not be visable")
@@ -242,10 +241,10 @@ if __name__ == '__main__':
 
     # BBoxes on original images
     image = draw_bounding_box(infra_cam, detections_2d)
-    cv2.imwrite('infra_back_cam_bbox.jpg', image)
-    print("Image saved as infra_back_cam_bbox.jpg")
+    cv2.imwrite('sample3/infra_cam_bbox.jpg', image)
+    print("Image saved as infra_cam_bbox.jpg")
 
     # Transformed BBoxes on car_front_cam
     image = draw_bounding_box(car_cam, car_detection_2d)
-    cv2.imwrite('car_front_cam_bbox.jpg', image)
+    cv2.imwrite('sample3/car_cam_bbox.jpg', image)
     print("Image saved as car_front_cam_bbox.jpg")
