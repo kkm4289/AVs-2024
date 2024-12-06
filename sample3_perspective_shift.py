@@ -16,7 +16,6 @@ car_calib_path = 'DeepAccident_type1_subtype2_normal/other_vehicle/calib/Town04_
 infra_calib_path = 'DeepAccident_type1_subtype2_normal/infrastructure/calib/Town04_type001_subtype0002_scenario00017/Town04_type001_subtype0002_scenario00017_005.pkl'
 infra_labels_path = 'DeepAccident_type1_subtype2_normal/infrastructure/label/Town04_type001_subtype0002_scenario00017/Town04_type001_subtype0002_scenario00017_005.txt'
 
-
 def draw_bounding_box(image, list_corners_2d):
     """
     Draws a 3D bounding box (as projected 2D corners) on an image.
@@ -30,7 +29,7 @@ def draw_bounding_box(image, list_corners_2d):
     """
 
     for labels, corners_2d in list_corners_2d:
-        
+
         # Convert corners_2d to integer (pixel coordinates)
         corners_2d = [(int(corner[0]), int(corner[1])) for corner in corners_2d]
 
@@ -132,7 +131,7 @@ def get_3d_bbox_corners(parts):
 
 def yolo_check (bbox, image, yolo_boxes):
     """
-    
+
     """
 
     # convert to yolo format by taking the max and min of the corners
@@ -149,6 +148,9 @@ def yolo_check (bbox, image, yolo_boxes):
     return False
 
 if __name__ == '__main__':
+
+    print("running...")
+
     car_cam = cv2.imread(car_cam_path)
     infra_cam = cv2.imread(infra_cam_path)
     infra_labels = np.loadtxt(infra_labels_path, delimiter=' ', dtype=str, skiprows=1)
@@ -174,29 +176,72 @@ if __name__ == '__main__':
 
 #     # infra_back_cam to lidar to ego
     infra_lidar_to_cam = infra_calib['lidar_to_Camera_Front']
-    infra_cam_to_lidar = np.linalg.inv(infra_lidar_to_cam)  # inverse of the transformation
-    infra_lidar_to_ego = infra_calib['lidar_to_ego']
+#     infra_cam_to_lidar = np.linalg.inv(infra_lidar_to_cam)  # inverse of the transformation
+#     infra_lidar_to_ego = infra_calib['lidar_to_ego']
     K_infra = infra_calib['intrinsic_Camera_Front']
-    infra_ego_to_world = infra_calib['ego_to_world']
+#     infra_ego_to_world = infra_calib['ego_to_world']
 
     #ego to lidar to car_front_cam
-    car_ego_to_world = car_calib['ego_to_world']
-    car_lidar_to_ego = car_calib['lidar_to_ego']
-    car_ego_to_cam = car_calib['lidar_to_Camera_FrontLeft'] # lidar not ego?
-    car_ego_to_lidar = np.linalg.inv(car_lidar_to_ego)
-    lidar_to_car = car_calib['lidar_to_Camera_FrontLeft']
+    # car_ego_to_world = car_calib['ego_to_world']
+    # car_lidar_to_ego = car_calib['lidar_to_ego']
+    # car_ego_to_cam = car_calib['lidar_to_Camera_FrontLeft'] # lidar not ego?
+    # car_ego_to_lidar = np.linalg.inv(car_lidar_to_ego)
+    # lidar_to_car = car_calib['lidar_to_Camera_FrontLeft']
     K_car = car_calib['intrinsic_Camera_FrontLeft']
-    car_world_to_ego = np.linalg.inv(car_ego_to_world)
-
-    T_infra_to_car = np.linalg.inv(
-        car_ego_to_world) @  infra_ego_to_world @ infra_cam_to_lidar @ car_ego_to_cam
-    transformation = T_infra_to_car
+    # car_world_to_ego = np.linalg.inv(car_ego_to_world)
+    #
+    # T_infra_to_car = np.linalg.inv(
+    #     car_ego_to_world) @  infra_ego_to_world @ infra_cam_to_lidar @ car_ego_to_cam
+    # transformation = T_infra_to_car
     # get  transformation from infra_back_cam to car_front_cam
-    transformation = lidar_to_car @ car_ego_to_lidar @ infra_lidar_to_ego
+    # transformation = lidar_to_car @ car_ego_to_lidar @ infra_lidar_to_ego  # was using this one
+
+    # transformation = lidar_to_car @ infra_lidar_to_ego
     # transformation = infra_lidar_to_ego @ infra_ego_to_world @ car_world_to_ego @ car_ego_to_cam
-    
+
     # transformation = np.linalg.inv(transformation)
     # print("Transformation matrix: \n", transformation)
+
+    # --------------------------------------------------------------------------
+    # ChatGPT code
+
+    # Step 1: Infrastructure LiDAR to Infrastructure Ego Frame
+    infra_lidar_to_ego = infra_calib[
+        'lidar_to_ego']  # Transform LiDAR -> Infra Ego
+
+    # Step 2: Infrastructure Ego to World Frame
+    infra_ego_to_world = infra_calib[
+        'ego_to_world']  # Transform Infra Ego -> World
+
+    # Step 3: World to Car Ego Frame
+    car_world_to_ego = np.linalg.inv(
+        car_calib['ego_to_world'])  # Transform World -> Car Ego
+
+    # Step 4: Car Ego to Car LiDAR Frame
+    car_lidar_to_ego = car_calib[
+        'lidar_to_ego']  # Transform Car LiDAR -> Car Ego
+    car_ego_to_lidar = np.linalg.inv(
+        car_lidar_to_ego)  # Transform Car Ego -> Car LiDAR
+
+    # Step 5: Car LiDAR to Front-Left Camera
+    car_lidar_to_camera = car_calib[
+        'lidar_to_Camera_FrontLeft']  # Transform Car LiDAR -> Front-Left Camera
+
+    # Final Transformation: Infra LiDAR -> Front-Left Camera
+    # T_infra_to_car_camera = (
+    transformation = (
+            car_lidar_to_camera @  # Step 5: Car LiDAR -> Camera
+            car_ego_to_lidar @  # Step 4: Car Ego -> LiDAR
+            car_world_to_ego @  # Step 3: World -> Car Ego
+            infra_ego_to_world @  # Step 2: Infra Ego -> World
+            infra_lidar_to_ego  # Step 1: Infra LiDAR -> Infra Ego
+    )
+
+    # Result: Use T_infra_to_car_camera to transform points
+
+    # --------------------------------------------------------------------------
+
+
 
     P_infraback = K_infra @ infra_lidar_to_cam[:3, :]
     # print("P_infraback: \n", P_infraback)
@@ -212,7 +257,7 @@ if __name__ == '__main__':
         print("Label", bbox[0])
         corners_3d = get_3d_bbox_corners(bbox)
         # project onto infra_back_cam and show image
-        corners_3d = np.array(corners_3d)        
+        corners_3d = np.array(corners_3d)
 
         # print("3D Corners: \n", (corners_3d))
         corners_2d = project_points(corners_3d, P_infraback)
@@ -235,16 +280,16 @@ if __name__ == '__main__':
         # print("3D Corners: \n", car_corners_3d)
         car_corners_2d = project_points(car_corners_3d, P_car)
         car_detection_2d.append([bbox[0], car_corners_2d])
-        
-                
+
+
 
 
     # BBoxes on original images
     image = draw_bounding_box(infra_cam, detections_2d)
     cv2.imwrite('sample3/infra_cam_bbox.jpg', image)
-    print("Image saved as infra_cam_bbox.jpg")
+    print("Image saved as sample3/infra_cam_bbox.jpg")
 
     # Transformed BBoxes on car_front_cam
     image = draw_bounding_box(car_cam, car_detection_2d)
     cv2.imwrite('sample3/car_cam_bbox.jpg', image)
-    print("Image saved as car_front_cam_bbox.jpg")
+    print("Image saved as sample3/car_cam_bbox.jpg")
