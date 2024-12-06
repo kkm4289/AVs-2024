@@ -23,22 +23,20 @@ lidar_to_Camera_FrontRight
 lidar_to_ego
 """
 
-pkl_path_start = "../DeepAccident_mini_subset/type1_subtype1_normal/ego_vehicle/calib/Town10HD_type001_subtype0001_scenario00014/"
-sample_pkl = "Town10HD_type001_subtype0001_scenario00014_001.pkl"
-sample_calib_path = pkl_path_start + sample_pkl
+# pkl_path_start = "../DeepAccident_mini_subset/type1_subtype1_normal/ego_vehicle/calib/Town10HD_type001_subtype0001_scenario00014/"
+# sample_pkl = "Town10HD_type001_subtype0001_scenario00014_001.pkl"
+# sample_calib_path = pkl_path_start + sample_pkl
 
-image_path_start = "../DeepAccident_mini_subset/type1_subtype1_normal/ego_vehicle/Camera_Back/Town10HD_type001_subtype0001_scenario00014/"
-sample_img = "Town10HD_type001_subtype0001_scenario00014_001.jpg"
-sample_img_path = image_path_start + sample_img
+# image_path_start = "../DeepAccident_mini_subset/type1_subtype1_normal/ego_vehicle/Camera_Back/Town10HD_type001_subtype0001_scenario00014/"
+# sample_img = "Town10HD_type001_subtype0001_scenario00014_001.jpg"
+# sample_img_path = image_path_start + sample_img
 
 output_path = "sample_001_output.jpg"
 
-
-# sample annotation, get these from the files
-annotation_sample = ("car -13.459459497478285 -0.0037344838527602064 "
-              "-1.2119891287962656 4.791779518127441 2.163450002670288 "
-              "1.4876600503921509 0.00033209590742323136 -4.587319957896956 "
-              "-0.016017722274652455 5481 197 True")
+infra_cam_path = 'DeepAccident_type1_subtype2_normal/infrastructure/Camera_Back/Town04_type001_subtype0002_scenario00017/Town04_type001_subtype0002_scenario00017_002.jpg'
+infra_calib_path = 'DeepAccident_type1_subtype2_normal/infrastructure/calib/Town04_type001_subtype0002_scenario00017/Town04_type001_subtype0002_scenario00017_002.pkl'
+sample_calib_path = infra_calib_path
+sample_img_path = infra_cam_path
 
 
 def load_pkl_file(file_path):
@@ -51,49 +49,6 @@ def load_pkl_file(file_path):
     with open(file_path, 'rb') as f:
         data = pickle.load(f)
         return data
-
-    # print("Contents of the .pkl file:")
-    # print(type(data))  # Check the data type (e.g., dict, list)
-    # if isinstance(data, dict):
-    #     for key, value in data.items():
-    #         print(f"{key}: {type(value)}")
-    #         print(value)  # Print values or summarize them
-    # else:
-    #     print(data)
-
-
-# Example usage
-matrices_01 = load_pkl_file(sample_calib_path)
-
-
-
-
-# Example matrices (replace these with actual matrices from the .pkl file)
-# K = np.array([[800, 560.166, 0],
-#               [450, 0, -560.166],
-#               [1, 0, 0]])  # Intrinsic matrix for a specific camera
-
-K = matrices_01["intrinsic_Camera_Back"]
-
-# T = np.array([[-9.99999953e-01, -8.76397347e-08,  1.28084908e-11, -2.09641438e+00],
-#               [8.74490193e-08, -1.00000001e+00,  3.90177943e-10, -1.58926697e-06],
-#               [-1.28007402e-10, 3.90494618e-10,  9.99999942e-01,  2.99999657e-01],
-#               [0, 0, 0, 1]])  # Transformation from LiDAR to the same camera
-
-T = matrices_01["lidar_to_Camera_Back"]
-
-# Extract the 3x4 portion of T (rotation + translation)
-T_camera = T[:3, :]
-
-# Calculate the projection matrix P
-P = K @ T_camera
-
-print("Projection matrix (P):")
-print(P)
-
-
-
-
 
 def get_3d_bbox_corners(annotation):
     """
@@ -108,6 +63,7 @@ def get_3d_bbox_corners(annotation):
     """
     # Parse the annotation string into components
     parts = annotation.split()
+    print(parts)
 
     # Extract position (x, y, z) and bounding box dimensions (L, W, H)
     x = float(parts[1])
@@ -176,67 +132,7 @@ def project_points(points_3d, P):
     # Normalize to get pixel coordinates
     points_2d = points_2d_homogeneous[:, :2] / points_2d_homogeneous[:, 2][:,
                                                np.newaxis]
-
     return points_2d
-
-
-bbox_corners = get_3d_bbox_corners(annotation_sample)
-
-# # Example: Projecting a 3D bounding box
-# points_3d = np.array([[1, 2, 3],
-#                       [4, 5, 6],
-#                       [7, 8,
-#                        9]])  # Replace with actual 3D points of a bounding box
-# points_2d = project_points(points_3d, P)
-
-points_2d = project_points(np.array(bbox_corners), P)
-
-print("2D Pixel coordinates:")
-print(points_2d)
-
-
-# def draw_bounding_box(image, corners_2d):
-#     """
-#     Draws a 3D bounding box (as projected 2D corners) on an image using matplotlib.
-#
-#     Args:
-#     - image (numpy array or PIL Image): The image on which to draw the bounding box.
-#     - corners_2d (list of tuples): 2D points representing the corners of the bounding box.
-#
-#     Returns:
-#     - None
-#     """
-#     # Convert image to numpy array if it's a PIL Image
-#     if isinstance(image, Image.Image):
-#         image = np.array(image)
-#
-#     # Create a plot
-#     fig, ax = plt.subplots()
-#
-#     # Display the image
-#     ax.imshow(image)
-#
-#     # Extract the 2D coordinates (corners)
-#     corners_2d = np.array(corners_2d)
-#
-#     # Draw the bottom and top faces of the bounding box (4 corners)
-#     for i in range(4):
-#         # Draw lines between the bottom corners
-#         ax.plot([corners_2d[i, 0], corners_2d[(i + 1) % 4, 0]],
-#                 [corners_2d[i, 1], corners_2d[(i + 1) % 4, 1]], 'g-', lw=2)
-#         # Draw lines between the top corners
-#         ax.plot([corners_2d[i + 4, 0], corners_2d[(i + 1) % 4 + 4, 0]],
-#                 [corners_2d[i + 4, 1], corners_2d[(i + 1) % 4 + 4, 1]], 'g-',
-#                 lw=2)
-#
-#     # Draw the vertical lines connecting the top and bottom faces
-#     for i in range(4):
-#         ax.plot([corners_2d[i, 0], corners_2d[i + 4, 0]],
-#                 [corners_2d[i, 1], corners_2d[i + 4, 1]], 'g-', lw=2)
-#
-#     # Show the plot
-#     plt.show()
-
 
 def draw_bounding_box(image, corners_2d):
     """
@@ -267,39 +163,58 @@ def draw_bounding_box(image, corners_2d):
     return image
 
 
-# Example usage
+# sample annotation, get these from the files
+# annotation_sample = ("car -13.459459497478285 -0.0037344838527602064 "
+#                      "-1.2119891287962656 4.791779518127441 2.163450002670288 "
+#                      "1.4876600503921509 0.00033209590742323136 -4.587319957896956 "
+#                      "-0.016017722274652455 5481 197 True")
 
-# Load the image (using PIL or another method)
-# image_path = "your_image_path_here.jpg"
-# image = Image.open(sample_img_path)
+
+annotation_sample = ("car -59.24394974113744 74.86522934894205 -2.6113033294677734 4.604510307312012 1.9315935373306274 1.854846715927124 -0.003082606357998318 0.0 0.0 20014 0 False")
+
+# Example usage
+matrices_01 = load_pkl_file(sample_calib_path)
+
+# Example matrices (replace these with actual matrices from the .pkl file)
+# K = np.array([[800, 560.166, 0],
+#               [450, 0, -560.166],
+#               [1, 0, 0]])  # Intrinsic matrix for a specific camera
+
+K = matrices_01["intrinsic_Camera_Back"]
+
+# T = np.array([[-9.99999953e-01, -8.76397347e-08,  1.28084908e-11, -2.09641438e+00],
+#               [8.74490193e-08, -1.00000001e+00,  3.90177943e-10, -1.58926697e-06],
+#               [-1.28007402e-10, 3.90494618e-10,  9.99999942e-01,  2.99999657e-01],
+#               [0, 0, 0, 1]])  # Transformation from LiDAR to the same camera
+
+T = matrices_01["lidar_to_Camera_Back"]
+
+# Extract the 3x4 portion of T (rotation + translation)
+T_camera = T[:3, :]
+
+# Calculate the projection matrix P
+P = K @ T_camera
+
+print("Projection matrix (P):")
+print(P)
+
+
+bbox_corners = get_3d_bbox_corners(annotation_sample)
+
+points_2d = project_points(np.array(bbox_corners), P)
+
+print("2D Pixel coordinates:")
+print(points_2d)
 
 image = cv2.imread(sample_img_path)
-
-
-# Assuming you already have the 2D projected bounding box corners
-# (e.g., from the `project_points` function)
-# projected_corners = [
-#     (100, 200),  # Replace with your actual 2D projected corner points
-#     (200, 200),
-#     (200, 300),
-#     (100, 300),
-#     (120, 220),
-#     (220, 220),
-#     (220, 320),
-#     (120, 320)
-# ]
 projected_corners = points_2d
 
-# Draw the bounding box on the image
 image_with_bbox = draw_bounding_box(image, projected_corners)
 
-
-# Show the result
 cv2.imshow("Image with Bounding Box", image_with_bbox)
 cv2.waitKey(0)
 cv2.destroyAllWindows()
 
-# Optionally, save the image
 cv2.imwrite(output_path, image_with_bbox)
 
 

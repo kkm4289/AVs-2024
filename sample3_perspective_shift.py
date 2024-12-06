@@ -172,35 +172,10 @@ if __name__ == '__main__':
     results = model(infra_cam_path)
     yolo_boxes = results.xyxy[0].numpy()  # xyxy format
 
-
-
 #     # infra_back_cam to lidar to ego
     infra_lidar_to_cam = infra_calib['lidar_to_Camera_Front']
-#     infra_cam_to_lidar = np.linalg.inv(infra_lidar_to_cam)  # inverse of the transformation
-#     infra_lidar_to_ego = infra_calib['lidar_to_ego']
     K_infra = infra_calib['intrinsic_Camera_Front']
-#     infra_ego_to_world = infra_calib['ego_to_world']
-
-    #ego to lidar to car_front_cam
-    # car_ego_to_world = car_calib['ego_to_world']
-    # car_lidar_to_ego = car_calib['lidar_to_ego']
-    # car_ego_to_cam = car_calib['lidar_to_Camera_FrontLeft'] # lidar not ego?
-    # car_ego_to_lidar = np.linalg.inv(car_lidar_to_ego)
-    # lidar_to_car = car_calib['lidar_to_Camera_FrontLeft']
     K_car = car_calib['intrinsic_Camera_FrontLeft']
-    # car_world_to_ego = np.linalg.inv(car_ego_to_world)
-    #
-    # T_infra_to_car = np.linalg.inv(
-    #     car_ego_to_world) @  infra_ego_to_world @ infra_cam_to_lidar @ car_ego_to_cam
-    # transformation = T_infra_to_car
-    # get  transformation from infra_back_cam to car_front_cam
-    # transformation = lidar_to_car @ car_ego_to_lidar @ infra_lidar_to_ego  # was using this one
-
-    # transformation = lidar_to_car @ infra_lidar_to_ego
-    # transformation = infra_lidar_to_ego @ infra_ego_to_world @ car_world_to_ego @ car_ego_to_cam
-
-    # transformation = np.linalg.inv(transformation)
-    # print("Transformation matrix: \n", transformation)
 
     # --------------------------------------------------------------------------
     # ChatGPT code
@@ -237,11 +212,7 @@ if __name__ == '__main__':
             infra_lidar_to_ego  # Step 1: Infra LiDAR -> Infra Ego
     )
 
-    # Result: Use T_infra_to_car_camera to transform points
-
     # --------------------------------------------------------------------------
-
-
 
     P_infraback = K_infra @ infra_lidar_to_cam[:3, :]
     # print("P_infraback: \n", P_infraback)
@@ -280,9 +251,6 @@ if __name__ == '__main__':
         # print("3D Corners: \n", car_corners_3d)
         car_corners_2d = project_points(car_corners_3d, P_car)
         car_detection_2d.append([bbox[0], car_corners_2d])
-
-
-
 
     # BBoxes on original images
     image = draw_bounding_box(infra_cam, detections_2d)
