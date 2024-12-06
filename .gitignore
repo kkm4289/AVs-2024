@@ -397,3 +397,4 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 .idea/
 DeepAccident_type1_subtype2_normal/
+DeepAccident_type1_subtype1_normal/
