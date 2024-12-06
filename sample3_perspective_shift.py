@@ -10,11 +10,52 @@ import pickle
 import torch
 
 np.set_printoptions(suppress=True)
-car_cam_path = 'DeepAccident_type1_subtype2_normal/other_vehicle/Camera_FrontLeft/Town04_type001_subtype0002_scenario00017/Town04_type001_subtype0002_scenario00017_005.jpg'
-infra_cam_path = 'DeepAccident_type1_subtype2_normal/infrastructure/Camera_Front/Town04_type001_subtype0002_scenario00017/Town04_type001_subtype0002_scenario00017_005.jpg'
-car_calib_path = 'DeepAccident_type1_subtype2_normal/other_vehicle/calib/Town04_type001_subtype0002_scenario00017/Town04_type001_subtype0002_scenario00017_005.pkl'
-infra_calib_path = 'DeepAccident_type1_subtype2_normal/infrastructure/calib/Town04_type001_subtype0002_scenario00017/Town04_type001_subtype0002_scenario00017_005.pkl'
-infra_labels_path = 'DeepAccident_type1_subtype2_normal/infrastructure/label/Town04_type001_subtype0002_scenario00017/Town04_type001_subtype0002_scenario00017_005.txt'
+# car_cam_path = 'DeepAccident_type1_subtype2_normal/other_vehicle/Camera_FrontLeft/Town04_type001_subtype0002_scenario00017/Town04_type001_subtype0002_scenario00017_005.jpg'
+# infra_cam_path = 'DeepAccident_type1_subtype2_normal/infrastructure/Camera_Front/Town04_type001_subtype0002_scenario00017/Town04_type001_subtype0002_scenario00017_005.jpg'
+# car_calib_path = 'DeepAccident_type1_subtype2_normal/other_vehicle/calib/Town04_type001_subtype0002_scenario00017/Town04_type001_subtype0002_scenario00017_005.pkl'
+# infra_calib_path = 'DeepAccident_type1_subtype2_normal/infrastructure/calib/Town04_type001_subtype0002_scenario00017/Town04_type001_subtype0002_scenario00017_005.pkl'
+# infra_labels_path = 'DeepAccident_type1_subtype2_normal/infrastructure/label/Town04_type001_subtype0002_scenario00017/Town04_type001_subtype0002_scenario00017_005.txt'
+
+# ------------------------------------------------------------------------------
+
+# TODO: choose scene here
+scene = 2
+
+if scene == 1:
+    print("Scene " + str(scene) + ", HD version")
+    # First subtype (HD)
+    # ego vehicle camera front right
+    # infrastructure camera back
+    subtype_num = "1"
+    car = "ego_vehicle"  # can be ego_vehicle, ego_vehicle_behind, other_vehicle
+    car_cam_direction = "FrontLeft"
+    infra_cam_direction = "Front"
+    town = "Town10HD_type001_subtype0001_scenario00014"  # images use this, but with _001 at the end
+    frame_num = "005"  # using a single frame for testing purposes
+else:
+    print("Scene " + str(scene) + ", non-HD version")
+    # Second subtype (non-HD version)
+    # other vehicle camera front left
+    # infrastructure camera front
+    # frame 005
+    subtype_num = "2"
+    car = "other_vehicle"  # can be infrastructure, ego_vehicle, ego_vehicle_behind, etc.
+    car_cam_direction = "FrontLeft"
+    infra_cam_direction = "Front"
+    town = "Town04_type001_subtype0002_scenario00017"  # images use this, but with _001 at the end
+    frame_num = "099"  # using a single frame for testing purposes
+
+# ------------------------------------------------------------------------------
+
+infra = "infrastructure"
+image_output_path = "output_subtype_" + subtype_num + "/"  # this is the folder where the output images go
+
+car_cam_path = 'DeepAccident_type1_subtype' + subtype_num + '_normal/' + car + '/Camera_' + car_cam_direction + '/' + town + '/' + town + '_' + frame_num + '.jpg'
+car_calib_path = 'DeepAccident_type1_subtype' + subtype_num + '_normal/' + car + '/calib/' + town + '/' + town + '_' + frame_num + '.pkl'
+
+infra_cam_path = 'DeepAccident_type1_subtype' + subtype_num + '_normal/' + infra + '/Camera_' + infra_cam_direction + '/' + town + '/' + town + '_' + frame_num + '.jpg'
+infra_calib_path = 'DeepAccident_type1_subtype' + subtype_num + '_normal/' + infra + '/calib/' + town + '/' + town + '_' + frame_num + '.pkl'
+infra_labels_path = 'DeepAccident_type1_subtype' + subtype_num + '_normal/' + infra + '/label/' + town + '/' + town + '_' + frame_num + '.txt'
 
 def draw_bounding_box(image, list_corners_2d):
     """
@@ -254,10 +295,16 @@ if __name__ == '__main__':
 
     # BBoxes on original images
     image = draw_bounding_box(infra_cam, detections_2d)
-    cv2.imwrite('sample3/infra_cam_bbox.jpg', image)
-    print("Image saved as sample3/infra_cam_bbox.jpg")
+    # cv2.imwrite('sample3/infra_cam_bbox.jpg', image)
+    image_type = "infra_cam_bbox"
+    image_file_name = image_output_path + image_type + "_" + frame_num + ".jpg"
+    cv2.imwrite(image_file_name, image)
+    print("Image saved as", image_file_name)
 
     # Transformed BBoxes on car_front_cam
     image = draw_bounding_box(car_cam, car_detection_2d)
-    cv2.imwrite('sample3/car_cam_bbox.jpg', image)
-    print("Image saved as sample3/car_cam_bbox.jpg")
+    image_type = "car_cam_bbox"
+    image_file_name = image_output_path + image_type + "_" + frame_num + ".jpg"
+    # cv2.imwrite('sample3/car_cam_bbox.jpg', image)
+    cv2.imwrite(image_file_name, image)
+    print("Image saved as", image_file_name)
