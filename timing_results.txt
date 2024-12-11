@@ -1,0 +1,4 @@
+Scene: Town04_type001_subtype0002_scenario00017
+Total time: 75.94 seconds
+Average time: 0.76 seconds
+Standard deviation: 0.41 seconds
